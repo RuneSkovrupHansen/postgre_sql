@@ -1,23 +1,34 @@
 import psycopg2
 
+# Start / stop postgresql
+# sudo service postgresql start / stop
+
+
+def connect_to_db(database, host="localhost", user="postgres", password="1234"):
+    try:
+        conn = psycopg2.connect(
+            host=host,
+            database=database,
+            user=user,
+            password=password
+        )
+    except psycopg2.OperationalError as e:
+        print(f"Unable to connect to db, error: {e}")
+        return None
+
+    return conn.cursor()
+
 
 def main():
 
-    # TODO place config in .ini file
-    conn = psycopg2.connect(
-        host="localhost",
-        database="dvdrental",
-        user="postgres",
-        password="1234"
-    )
+    cur = connect_to_db("dvdrental")
+    if cur is None:
+        return
 
-    # Cursor is an object that can interact with a db
-    cursor = conn.cursor()
+    query = "SELECT * FROM actor WHERE first_name = 'Bob'"
 
-    cursor.execute("SELECT * FROM actor")
-
-    # Retrieve query results
-    records = cursor.fetchall()
+    cur.execute(query)
+    records = cur.fetchall()
 
     print(records)
 
