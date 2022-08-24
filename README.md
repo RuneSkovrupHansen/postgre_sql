@@ -529,3 +529,362 @@ The convenience of the NATURAL JOIN is that it does not require you to specify t
 # Grouping data
 
 ## GROUP BY
+
+GROUP BY clause divides ros returned from SELECT statement into groups. Aggregate function can be applied on sum of items. Ex. SUM(), COUNT().
+
+Example query:
+```
+select c.customer_id, c.first_name || ' ' || c.last_name full_name, SUM(p.amount) total_amount FROM customer c INNER JOIN payment p USING(customer_id) GROUP BY c.customer_id ORDER BY total_amount DESC;
+```
+
+Note that to reference the output of an aggregator function, an alias must be used.
+
+Can be grouped on multiple columns.
+
+Example of DATE() to transform date column into comparable data.
+
+## HAVING
+
+The HAVING clause specifies a search condition for a group or an aggregate. The HAVING clause is often used with the GROUP BY clause to filter groups or aggregates based on a specified condition.
+
+# Set operations
+
+## Union
+
+The UNION operator combines result sets of two or more SELECT statements into a single result set.
+
+```
+SELECT select_list_1
+FROM table_expresssion_1
+UNION
+SELECT select_list_2
+FROM table_expression_2
+```
+
+UNION_ALL to get full Venn diagram.
+
+Duplicate entries removed with just UNION
+
+## INTERSECT
+
+The INTERSECT operator returns any rows that are available in both result sets.
+
+```
+SELECT select_list
+FROM A
+INTERSECT
+SELECT select_list
+FROM B;
+```
+
+## EXCEPT
+
+Return the rows in the first query that does not appear in the output of the second query.
+
+# Grouping sets, Cube and Rollup
+
+## GROUPING SETS
+
+The PostgreSQL GROUPING SETS clause can be used to generate multiple grouping sets in a query.
+
+GROUP BY operator. SELECT aggregation operators like COUNT(), SUM(), etc, can be used to select from the group.
+
+GROUPING SETS makes it possible to group by multiple things in a single query.
+
+```
+SELECT
+    c1,
+    c2,
+    aggregate_function(c3)
+FROM
+    table_name
+GROUP BY
+    GROUPING SETS (
+        (c1, c2),
+        (c1),
+        (c2),
+        ()
+);
+```
+## ROLLUP
+
+SUBCLAUSE for GROUPING SETS to more quickly define sets to group by.
+
+Ordering matters. See source.
+
+```
+SELECT
+    c1,
+    c2,
+    c3,
+    aggregate(c4)
+FROM
+    table_name
+GROUP BY
+    ROLLUP (c1, c2, c3);
+```
+
+Partials rolls possible
+
+## CUBE
+
+SUBCLAUSE for GROUPING SETS to get all possible combinations of groups from a list.
+
+Ordering matters. See source.
+
+Subcubes are possible.
+
+```
+SELECT
+    c1,
+    c2,
+    c3,
+    aggregate (c4)
+FROM
+    table_name
+GROUP BY
+    CUBE (c1, c2, c3);
+
+```
+
+# SUBQUERY
+
+## SUBQUERY
+
+Queries in queries. Allows us to construct complex statements.
+
+Example, find movies with rental_rate higher than average. 1. query to find average, 2. query to find movies higher than average.
+
+```
+SELECT
+	film_id,
+	title,
+	rental_rate
+FROM
+	film
+WHERE
+	rental_rate > (
+		SELECT
+			AVG (rental_rate)
+		FROM
+			film
+	);
+```
+
+Query inside brackets is a subquery.
+
+Order:
+
+1. Subquery
+2. Pass outer query
+3. Execute outer query
+
+Since subqueries can return zero or more rows, we can use IN to guard against zero cases.
+
+```
+SELECT
+	film_id,
+	title
+FROM
+	film
+WHERE
+	film_id IN (
+		SELECT
+			inventory.film_id
+		FROM
+			rental
+		INNER JOIN inventory ON inventory.inventory_id = rental.inventory_id
+		WHERE
+			return_date BETWEEN '2005-05-29'
+		AND '2005-05-30'
+	);
+```
+
+EXISTS can wrap subquery and will return true or false depending on if any results is returned from subquery.
+
+## ANY
+
+The PostgreSQL ANY operator compares a value to a set of values returned by a subquery. 
+
+`expresion operator ANY(subquery)`
+
+ANY is equivalent to IN.
+
+Essentially it's used to retrieve zero or more rows from an expression.
+
+```
+SELECT
+    title,
+    category_id
+FROM
+    film
+INNER JOIN film_category
+        USING(film_id)
+WHERE
+    category_id = ANY(
+        SELECT
+            category_id
+        FROM
+            category
+        WHERE
+            NAME = 'Action'
+            OR NAME = 'Drama'
+    );
+```
+
+Equivalent:
+
+```
+SELECT
+    title,
+    category_id
+FROM
+    film
+INNER JOIN film_category
+        USING(film_id)
+WHERE
+    category_id IN(
+        SELECT
+            category_id
+        FROM
+            category
+        WHERE
+            NAME = 'Action'
+            OR NAME = 'Drama'
+    );
+```
+
+## ALL
+
+Similar use to ANY but instead all conditions must be fulfilled.
+
+Use with numeric operators like < > >= <=, the value that is being compared is compared against ALL of the values.
+
+For example in the query below, only film whose length is greater than all average lengths are selected.
+
+```
+SELECT
+    film_id,
+    title,
+    length
+FROM
+    film
+WHERE
+    length > ALL (
+            SELECT
+                ROUND(AVG (length),2)
+            FROM
+                film
+            GROUP BY
+                rating
+    )
+ORDER BY
+    length;
+```
+
+The length in the WHERE statement must be greater than ALL of the lengths returned from the other query.
+
+## EXISTS
+
+EXISTS() is a boolean operator that checks for the existence of rows in a subquery.
+
+```
+SELECT 
+    column1
+FROM 
+    table_1
+WHERE 
+    EXISTS( SELECT 
+                1 
+            FROM 
+                table_2 
+            WHERE 
+                column_2 = table_1.column_1);
+```
+
+Also filters the return in the process.
+
+```
+SELECT first_name,
+       last_name
+FROM customer c
+WHERE EXISTS
+    (SELECT 1
+     FROM payment p
+     WHERE p.customer_id = c.customer_id
+       AND amount > 11 )
+ORDER BY first_name,
+         last_name;
+```
+
+Can be negated with NOT.
+
+NULL exists and will return true.
+
+# Common Table Expressions
+
+## Common Table Expression -  CTE
+
+Common table expressions, used to simplify complex queries.
+
+```
+WITH cte_name (column_list) AS (
+    CTE_query_definition 
+)
+statement;
+```
+
+Example:
+
+```
+WITH cte_film AS (
+    SELECT 
+        film_id, 
+        title,
+        (CASE 
+            WHEN length < 30 THEN 'Short'
+            WHEN length < 90 THEN 'Medium'
+            ELSE 'Long'
+        END) length    
+    FROM
+        film
+)
+SELECT
+    film_id,
+    title,
+    length
+FROM 
+    cte_film
+WHERE
+    length = 'Long'
+ORDER BY 
+    title; 
+```
+
+First part defines the name of the CTE, second part defines teh SELECT statement which populates the returned rows.
+
+It's a way to split up a query to it is more manageable rather than having several nested subqueries.
+
+Simplifies queries, easier to read.
+
+WITH is the keyword for CTE's. For auxillary statements.
+
+## Recursive query
+
+Recursive query refers to a recursive CTE.
+
+Syntax:
+
+```
+WITH RECURSIVE cte_name AS(
+    CTE_query_definition -- non-recursive term
+    UNION [ALL]
+    CTE_query definion  -- recursive term
+) SELECT * FROM cte_name;
+```
+
+See source.
+
+# Modifying data
+
+# INSERT
