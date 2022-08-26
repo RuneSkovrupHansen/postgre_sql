@@ -887,4 +887,317 @@ See source.
 
 # Modifying data
 
-# INSERT
+## INSERT
+
+Insert a new row into a table with INSERT statement.
+
+Syntax:
+
+```
+INSERT INTO table_name(column1, column2, …)
+VALUES (value1, value2, …);
+```
+
+Return syntax:
+
+`INSERT oid count`
+
+Where oid is an internal PostgreSQL object identifier. Not important, commonly just 0.
+
+Return column can be specified with RETURNING clause. Example:
+
+```
+INSERT INTO table_name(column1, column2, …)
+VALUES (value1, value2, …)
+RETURNING *;
+```
+
+AS clause can be used on the RETURNING clause.
+
+When RETURNING clause is specified, the columns specified from the object is returned. Probably multiple rows when more values are specified.
+
+Use of single quotes to insert character data.
+
+All columns which are specified as NOT NULL must be passed when inserting into a row, they are required. Non-required columns assume default values when omitted, commonly NULL.
+
+To insert data which requires single quote, use another single quote to escape it.
+
+'YYYY-MM-DD' for columns with data type.
+
+## INSERT MULTIPLE ROWS
+
+Possible to insert multiple rows. Syntax:
+
+```
+INSERT INTO table_name (column_list)
+VALUES
+    (value_list_1),
+    (value_list_2),
+    ...
+    (value_list_n);
+```
+
+```
+INSERT INTO 
+    links (url, name)
+VALUES
+    ('https://www.google.com','Google'),
+    ('https://www.yahoo.com','Yahoo'),
+    ('https://www.bing.com','Bing');
+```
+
+RETURNING clause can be specified which will return all columns.
+
+## UPDATE
+
+Syntax:
+
+```
+UPDATE table_name
+SET column1 = value1,
+    column2 = value2,
+    ...
+WHERE condition;
+```
+
+WHERE is optional, otherwise will update all rows in table.
+
+RETURNING clause can also be specified:
+
+```
+UPDATE table_name
+SET column1 = value1,
+    column2 = value2,
+    ...
+WHERE condition
+RETURNING * | output_expression AS output_name;
+```
+
+Returns number of updated rows.
+
+Condition can use any math operators like <>=!
+
+## UPDATE JOIN
+
+Sometimes, you need to update data in a table based on values in another table. In this case, you can use the PostgreSQL UPDATE join, syntax:
+
+```
+UPDATE t1
+SET t1.c1 = new_value
+FROM t2
+WHERE t1.c2 = t2.c2;
+```
+
+To join to another table in the UPDATE statement, you specify the joined table in the FROM clause and provide the join condition in the WHERE clause. The FROM clause must appear immediately after the SET clause.
+
+Example:
+
+```
+UPDATE product
+SET net_price = price - price * discount
+FROM product_segment
+WHERE product.segment_id = product_segment.id;
+```
+
+Updating values in first table, joining on second table. Table aliases can be used.
+
+## DELETE
+
+The PostgreSQL DELETE statement allows you to delete one or more rows from a table.
+
+Syntax:
+
+```
+DELETE FROM table_name
+WHERE condition
+RETURNING (select_list | *)
+```
+
+Example of using list:
+
+```
+DELETE FROM links
+WHERE id IN (6,5)
+RETURNING *;
+```
+
+Note that comparison operators can be used in WHERE condition.
+
+## DELETE JOIN
+
+PostgreSQL doesn’t support the DELETE JOIN statement. However, it does support the USING clause in the DELETE statement that provides similar functionality as the DELETE JOIN.
+
+Syntax:
+
+```
+DELETE FROM table_name1
+USING table_expression
+WHERE condition
+RETURNING returning_columns;
+```
+
+Used to delete from one table based on data in another column.
+
+Syntax:
+
+```
+DELETE FROM t1
+USING t2
+WHERE t1.id = t2.id
+```
+
+It can be replaced by using a SUBQUERY in WHERE, with IN. This is standard SQL and might be required for applications which must be compatible with all other SQL databases.
+
+## UPSERT - INSERT ON CONFLICT
+
+In relational databases, the term upsert is referred to as merge. The idea is that when you insert a new row into the table, PostgreSQL will update the row if it already exists, otherwise, it will insert the new row. That is why we call the action is upsert (the combination of update or insert).
+
+Combination of update or insert.
+
+```
+INSERT INTO table_name(column_list) 
+VALUES(value_list)
+ON CONFLICT target action;
+```
+
+target:
+
+* (column_name)
+* ON CONSTRAINT constraint_name
+* WHERE predicate
+
+action:
+
+* DO NOTHING
+* DO UPDATE SET column_1 = value_1, .. WHERE condition
+
+See source for more info and examples. Quite simple.
+
+https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-upsert/
+
+# Transaction
+
+BEGIN, COMMIT and ROLLBACK
+
+A database transaction is a single unit of work that consists of one or more operations.
+
+A PostgreSQL transaction is atomic, consistent, isolated, and durable. These properties are often referred to as ACID:
+
+By default, transactions are handled automatically, but can be manually controlled using BEGIN, COMMIT, ROLLBACK.
+
+Starting a transaction with BEGIN is like beginning a session of work. Changes can be seen inside the transaction before they have been committed, but not from a different transaction.
+
+Committing a change, COMMIT, will make the change permanent in the database.
+
+Transactions can be used to ensure that several queries are committed to the database at the same time.
+
+# Import and export data
+
+## Import CSV file to table
+
+Prepare table with correct column.
+
+```
+CREATE TABLE persons (
+  id SERIAL,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  dob DATE,
+  email VARCHAR(255),
+  PRIMARY KEY (id)
+)
+```
+
+```
+COPY persons(first_name, last_name, dob, email)
+FROM 'C:\sampledb\persons.csv'
+DELIMITER ','
+CSV HEADER;
+```
+
+Use of CSV HEADER to specify and ignore header in CSV file.
+
+Must be on local machine, must have sudo access to copy.
+
+## Export table to CSV
+
+Syntax:
+
+```
+COPY persons TO 'C:\tmp\persons_db.csv' DELIMITER ',' CSV HEADER;
+```
+
+Alternative with only some columns:
+
+```
+COPY persons(first_name,last_name,email) 
+TO 'C:\tmp\persons_partial_db.csv' DELIMITER ',' CSV HEADER;
+```
+
+HEADER can be excluded to not save the header.
+
+# Managing tables
+
+## Data types
+
+Bool. Several different input available, return is true, false, null.
+
+Character. CHAR(n), string, adds padding, VARCHAR(n) does not pad with spaces, TEXT variable length, unlimited length.
+
+Numeric, integers and floats. Several types for both.
+
+Temporal time types. Different types.
+
+Arrays. Can store array of strings, ints, etc. in array columns.
+
+JSON. Two types. Plain text, binary.
+
+UUID.
+
+Other misc types such as geometry types.
+
+## CREATE TABLE
+
+Syntax:
+
+```
+CREATE TABLE [IF NOT EXISTS] table_name (
+   column1 datatype(length) column_contraint,
+   column2 datatype(length) column_contraint,
+   column3 datatype(length) column_contraint,
+   table_constraints
+);
+```
+
+IF NOT EXISTS can be used to skip creating the table if it already exists.
+
+Constraints:
+
+* NOT NULL
+* UNIQUE, values in column is unique across the rows within the same table
+* PRIMARY KEY, primary key for table
+* CHECK, data must satisfy boolean
+* FOREIGN KEY, Value in column or group of columns from a table exists in a column or group in another table
+
+Leaving constraints blank will allow the value to be null.
+
+Primary key can be specified as several columns. Example:
+
+```
+CREATE TABLE account_roles (
+  user_id INT NOT NULL,
+  role_id INT NOT NULL,
+  grant_date TIMESTAMP,
+  PRIMARY KEY (user_id, role_id),
+  FOREIGN KEY (role_id)
+      REFERENCES roles (role_id),
+  FOREIGN KEY (user_id)
+      REFERENCES accounts (user_id)
+);
+```
+
+Because user_id references a column in another table we need to define a foreign key constraint with the REFERENCES keyword.
+
+## SELECT INTO
+
+
