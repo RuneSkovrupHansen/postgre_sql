@@ -2306,4 +2306,225 @@ Usage:
 
 `SELECT * FROM get_film_summary (40);`
 
+# Conditional expressions and operators
+
+## CASE
+
+The PostgreSQL CASE expression is the same as IF/ELSE statement in other programming languages. It allows you to add if-else logic to the query to form a powerful query.
+
+Two forms, general and simple.
+
+General:
+
+```
+CASE 
+      WHEN condition_1  THEN result_1
+      WHEN condition_2  THEN result_2
+      [WHEN ...]
+      [ELSE else_result]
+END
+```
+
+Evaluates conditions top -> bottom to find condition that is true.
+
+Stops at first true condition.
+
+Example:
+
+```
+SELECT title,
+       length,
+       CASE
+           WHEN length> 0
+                AND length <= 50 THEN 'Short'
+           WHEN length > 50
+                AND length <= 120 THEN 'Medium'
+           WHEN length> 120 THEN 'Long'
+       END duration
+FROM film
+ORDER BY title;
+```
+
+Simple:
+
+```
+CASE expression
+   WHEN value_1 THEN result_1
+   WHEN value_2 THEN result_2 
+   [WHEN ...]
+ELSE
+   else_result
+END
+```
+
+## COALESCE
+
+Syntax:
+
+`COALESCE (argument_1, argument_2, …);`
+
+Returns first argument that is not null.
+
+Example:
+
+```
+SELECT
+	COALESCE (NULL, 2 , 1);
+```
+
+Evaluates to 2.
+
+Example:
+
+```
+SELECT
+	product,
+	(price - COALESCE(discount,0)) AS net_price
+FROM
+	items;
+```
+
+Handles cases where discount is NULL.
+
+## ISNULL
+
+`ISNULL(expression, replacement)`
+
+Used to replace null values. Similar to COALESCE. Can also be replaced using CASE.
+
+## NULLIF
+
+`NULLIF(argument_1,argument_2);`
+
+The NULLIF function returns a null value if argument_1 equals to argument_2, otherwise it returns argument_1.
+
+Example usage:
+
+`NULLIF (description, '')`
+
+Common usage is to guard against null division.
+
+## CAST
+
+There are many cases that you want to convert a value of one data type into another. PostgreSQL provides you with the CAST operator that allows you to do this.
+
+`CAST ( expression AS target_type );`
+
+Alternate simpler syntax:
+
+`expression::type`
+
+Example:
+
+```
+SELECT
+  '100'::INTEGER,
+  '01-OCT-2015'::DATE;
+```
+
+If the expression cannot be converted to the target type, PostgreSQL will raise an error.
+
+Examples for all data types.
+
+# psql
+
+## Connect to db
+
+`psql -d database -U  user -W`
+`psql -h host -d database -U user -W` - Connect to remote host db
+
+## Switch to new db
+
+`\c dbname username`
+
+## List commands
+
+List commands
+
+* `\d` - dbs
+* `\dt` - tables
+* `\dn` - schema
+* `\df` - functions
+* `\dv` - views
+* `\du` - roles
+
+## Previous command
+
+`\g` - show command history
+
+## History
+
+`\s` - command history
+
+## Execute from file
+
+`\i filename` - execute from file
+
+## Help on statements
+
+`\h statement` - help on statement
+
+## Timing
+
+How much time a query takes
+
+`\timing` - enable / disable timing
+
+## Editor
+
+`\e` - open editor to write query in
+`\ef function_name` - edit function from editor
+
+## Quit
+
+`\q`
+
+# PostgreSQL Recipes
+
+## Generate random number
+
+`SELECT random();`
+
+`SELECT random() * 10 + 1 AS RAND_1_11;`
+
+Can use floor() to force integer value, example:
+
+`SELECT floor(random() * 10 + 1)::int;`
+
+Can create function to return random number.
+
+## Delete duplicate rows
+
+Example:
+
+```
+DELETE FROM
+    basket a
+        USING basket b
+WHERE
+    a.id < b.id
+    AND a.fruit = b.fruit;
+```
+
+## EXPLAIN
+
+The EXPLAIN statement returns the execution plan which PostgreSQL planner generates for a given statement.
+
+The EXPLAIN shows how tables involved in a statement will be scanned by index scan or sequential scan, etc., and if multiple tables are used, what kind of join algorithm will be used.
+
+`EXPLAIN [ ( option [, ...] ) ] sql_statement;`
+
+Several options.
+
+Example:
+
+`EXPLAIN SELECT * FROM film;`
+
+## PostgreSQL vs MySQL
+
+Postgres has more advanced functions but is not as easy to use as MySQL.
+
+See source for details.
+
+https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-vs-mysql/
 
