@@ -1,0 +1,25 @@
+DROP TABLE IF EXISTS film_named_category;
+
+CREATE TEMP TABLE film_named_category AS
+    SELECT
+        fc.film_id,
+        c.name
+    FROM
+        film_category fc
+    INNER JOIN
+        category c
+    USING(category_id);
+
+SELECT
+    f.title movie_title,
+    fnc.name movie_category,
+    CASE
+        WHEN f.length <= 50 THEN 'Short'
+        WHEN f.length <= 120 THEN 'Medium'
+        ELSE 'Long'
+    END movie_length
+FROM
+    film f
+INNER JOIN
+    film_named_category fnc
+USING(film_id);

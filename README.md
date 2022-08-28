@@ -2527,4 +2527,3 @@ Postgres has more advanced functions but is not as easy to use as MySQL.
 See source for details.
 
 https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-vs-mysql/
-
